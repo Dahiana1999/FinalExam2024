@@ -2,76 +2,57 @@ import React, { useState } from "react";
 import axios from "axios";
 
 function App() {
-  const [file, setFile] = useState(null);
-  const [audio, setAudio] = useState(null);
-  const [prompt, setPrompt] = useState("");
-  const [question, setQuestion] = useState("");
-  const [transcript, setTranscript] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [uploadedImage, setUploadedImage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [answer, setAnswer] = useState("");
   const [isListening, setIsListening] = useState(false);
 
-  const handleUploadFile = async () => {
-    if (!file) return alert("Please select a file");
-    const formData = new FormData();
-    formData.append("file", file);
+  const handleProcessInput = async () => {
+    if (!inputValue) {
+      alert("Por favor, ingresa texto o selecciona un archivo.");
+      return;
+    }
+
+    if (typeof inputValue === "object" && inputValue instanceof File) {
+      const formData = new FormData();
+      formData.append("image", inputValue);
+
+      try {
+        const response = await axios.post("http://localhost:3000/upload-image", formData);
+        setUploadedImage(response.data.imageUrl);
+        alert("Imagen subida exitosamente.");
+      } catch (error) {
+        alert(`Error subiendo la imagen: ${error.message}`);
+      }
+      return;
+    }
 
     try {
-      const response = await axios.post(
-        "http://localhost:3000/upload",
-        formData
-      );
-      alert(`File uploaded: ${response.data.message}`);
+      if (inputValue.trim().endsWith("?")) {
+        const response = await axios.post("http://localhost:3000/ask", { question: inputValue });
+        setAnswer(response.data.answer);
+        setImageUrl("");
+      } else {
+        const response = await axios.post("http://localhost:3000/generate-image", { prompt: inputValue });
+        setImageUrl(response.data.imageUrl);
+        setAnswer("");
+      }
     } catch (error) {
-      alert(`Error uploading file: ${error.message}`);
+      alert(`Error procesando la solicitud: ${error.message}`);
     }
   };
 
-  const handleRecognizeAudio = async () => {
-    if (!audio) return alert("Please select an audio file");
-    const formData = new FormData();
-    formData.append("audio", audio);
-
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/recognize",
-        formData
-      );
-      setTranscript(response.data.transcript);
-    } catch (error) {
-      alert(`Error recognizing speech: ${error.message}`);
-    }
-  };
-
-  const handleGenerateImage = async () => {
-    if (!prompt) return alert("Please enter a prompt");
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/generate-image",
-        { prompt }
-      );
-      setImageUrl(response.data.imageUrl);
-    } catch (error) {
-      alert(`Error generating image: ${error.message}`);
-    }
-  };
-
-  const handleAskQuestion = async () => {
-    if (!question) return alert("Please enter a question");
-    try {
-      const response = await axios.post("http://localhost:3000/ask", {
-        question,
-      });
-      setAnswer(response.data.answer);
-    } catch (error) {
-      alert(`Error retrieving answer: ${error.message}`);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setInputValue(file);
     }
   };
 
   const startListening = () => {
     try {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert("Tu navegador no soporta la API de Reconocimiento de Voz.");
         return;
@@ -88,7 +69,7 @@ function App() {
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        setQuestion(transcript);
+        setInputValue(transcript);
         setIsListening(false);
       };
 
@@ -108,58 +89,41 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <h1>Virtual Assistant</h1>
-      <div className="app-container">
-        <div className="open">
-          <section className="ask">
-            <h2>Ask the Assistant</h2>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <input
-                type="text"
-                placeholder="Ask something"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <div className="buttons">
-                <button
-                  className="button3"
-                  onClick={startListening}
-                  style={{ marginLeft: "10px", padding: "5px" }}
-                >
-                  {isListening ? "Listening..." : "🎙️"}
-                </button>
-                <button
-                  onClick={handleAskQuestion}
-                  className="button3"
-                  style={{ marginLeft: "10px" }}
-                >
-                  <i className="fa-solid fa-magnifying-glass"></i>
-                </button>
-              </div>
-            </div>
-            {answer && <p>Answer: {answer}</p>}
-          </section>
-          <section className="image">
-            <h2>Image Generator</h2>
+    <div className="virtual-assistant">
+      <h1>El Dango Asistent</h1> <img src="" alt="Logo"/>
+      <div className="virtual-container">
+        <div className="interaction-section">
+          <h2>Interactúa con el asistente</h2>
+          <div className="input-section">
             <input
               type="text"
-              placeholder="Enter a image prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Escribe una pregunta o un prompt"
+              value={typeof inputValue === "string" ? inputValue : ""}
+              onChange={(e) => setInputValue(e.target.value)}
             />
-            <button onClick={handleGenerateImage} className="button3">
-              <i className="fa-solid fa-magnifying-glass"></i>
+            <button onClick={startListening} className="voice-button">
+              {isListening ? "Escuchando..." : "🎙️"}
             </button>
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Generated"
-                style={{ maxWidth: "300px", marginTop: "10px" }}
-              />
-            )}
-          </section>
+            <input type="file" accept="image/*" onChange={handleFileChange} className="file-input" />
+            <button onClick={handleProcessInput} className="submit-button">
+              Enviar
+            </button>
+          </div>
+        </div>
+        <div className="response-section">
+          {uploadedImage && (
+            <div>
+              <h3>Imagen Subida:</h3>
+              <img src={uploadedImage} alt="Uploaded" />
+            </div>
+          )}
+          {imageUrl && (
+            <div>
+              <h3>Imagen Generada:</h3>
+              <img src={imageUrl} alt="Generated" />
+            </div>
+          )}
+          {answer && <p><strong>Respuesta:</strong> {answer}</p>}
         </div>
       </div>
     </div>
