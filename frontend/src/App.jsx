@@ -90,10 +90,12 @@ function App() {
 
   return (
     <div className="virtual-assistant">
-      <h1>El Dango Asistent</h1> <img src="" alt="Logo"/>
+      <h1>El Dango Asistent</h1> 
+      
       <div className="virtual-container">
         <div className="interaction-section">
           <h2>Interactúa con el asistente</h2>
+          <img src="/12.jpg" alt="Virtual Assistant" />
           <div className="input-section">
             <input
               type="text"
