@@ -95,7 +95,7 @@ function App() {
       <div className="virtual-container">
         <div className="interaction-section">
           <h2>Interactúa con el asistente</h2>
-          <img src="/12.jpg" alt="Virtual Assistant" />
+          <img src="/12.jpg" alt="Virtual Assistant" className="img-dango"/>
           <div className="input-section">
             <input
               type="text"
