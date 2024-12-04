@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress"; // Indicador de carga de Material UI
 
 function App() {
   const [inputValue, setInputValue] = useState("");
@@ -7,12 +9,33 @@ function App() {
   const [imageUrl, setImageUrl] = useState("");
   const [answer, setAnswer] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Estado de carga
+  const [isRecording, setIsRecording] = useState(false); // Estado de grabación
+
+  // Función para que el asistente lea el texto
+  const speakText = (text) => {
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "es-ES"; // Lenguaje configurado a español
+    utterance.rate = 1; // Velocidad normal
+    utterance.pitch = 1; // Tono normal
+    speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (answer) {
+      speakText(answer); // Lee la respuesta cuando cambia
+    }
+  }, [answer]);
 
   const handleProcessInput = async () => {
     if (!inputValue) {
       alert("Por favor, ingresa texto o selecciona un archivo.");
       return;
     }
+
+    setIsLoading(true); // Inicia el estado de carga
 
     if (typeof inputValue === "object" && inputValue instanceof File) {
       const formData = new FormData();
@@ -24,6 +47,8 @@ function App() {
         alert("Imagen subida exitosamente.");
       } catch (error) {
         alert(`Error subiendo la imagen: ${error.message}`);
+      } finally {
+        setIsLoading(false); // Finaliza el estado de carga
       }
       return;
     }
@@ -40,6 +65,8 @@ function App() {
       }
     } catch (error) {
       alert(`Error procesando la solicitud: ${error.message}`);
+    } finally {
+      setIsLoading(false); // Finaliza el estado de carga
     }
   };
 
@@ -65,21 +92,25 @@ function App() {
 
       recognition.onstart = () => {
         setIsListening(true);
+        setIsRecording(true); // Inicia la grabación
       };
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setInputValue(transcript);
         setIsListening(false);
+        setIsRecording(false); // Finaliza la grabación
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        setIsRecording(false); // Finaliza la grabación
       };
 
       recognition.onerror = (event) => {
         alert(`Error en el reconocimiento: ${event.error}`);
         setIsListening(false);
+        setIsRecording(false); // Finaliza la grabación
       };
 
       recognition.start();
@@ -90,29 +121,57 @@ function App() {
 
   return (
     <div className="virtual-assistant">
-      <h1>El Dango Asistent</h1> 
-      
+      <h1>El Dango Asistente</h1>
+
       <div className="virtual-container">
         <div className="interaction-section">
           <h2>Interactúa con el asistente</h2>
-          <img src="/12.jpg" alt="Virtual Assistant" className="img-dango"/>
+          <img src="/12.jpg" alt="Virtual Assistant" className="img-dango" />
           <div className="input-section">
             <input
               type="text"
               placeholder="Escribe una pregunta o un prompt"
               value={typeof inputValue === "string" ? inputValue : ""}
               onChange={(e) => setInputValue(e.target.value)}
+              className="border rounded-md p-2 w-full"
             />
-            <button onClick={startListening} className="voice-button">
+            <Button
+              onClick={startListening}
+              variant="contained"
+              color="primary"
+              className="mt-2"
+            >
               {isListening ? "Escuchando..." : "🎙️"}
-            </button>
-            <input type="file" accept="image/*" onChange={handleFileChange} className="file-input" />
-            <button onClick={handleProcessInput} className="submit-button">
-              Enviar
-            </button>
+            </Button>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="file-input mt-4"
+            />
+            <Button
+              onClick={handleProcessInput}
+              variant="contained"
+              color="success"
+              className="mt-4"
+              disabled={isLoading} // Deshabilita el botón mientras está cargando
+            >
+              {isLoading ? "Cargando..." : "Enviar"}
+            </Button>
           </div>
+          {isRecording && (
+            <div className="recording-indicator">
+              <p>🎤 Grabando...</p>
+            </div>
+          )}
         </div>
         <div className="response-section">
+          {isLoading && (
+            <div className="loading-indicator">
+              <CircularProgress />
+              <p>Procesando tu solicitud...</p>
+            </div>
+          )}
           {uploadedImage && (
             <div>
               <h3>Imagen Subida:</h3>

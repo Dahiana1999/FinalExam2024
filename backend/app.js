@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Crear carpeta 'uploads' si no existe
+// Crear carpeta 'uploads' 
 const fs = require('fs');
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
